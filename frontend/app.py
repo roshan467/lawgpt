@@ -1,27 +1,32 @@
 """
-app.py — LawGPT Streamlit chat interface.
-Run: streamlit run frontend/app.py
+app.py — LawGPT Streamlit Frontend
 """
-import streamlit as st
-import sys
-import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
-from rag_pipeline import answer_question
-from llm_interface import is_ollama_available
+import streamlit as st
+import requests
+import os
 
 st.set_page_config(page_title="LawGPT", page_icon="⚖️", layout="centered")
 
+BACKEND_URL = os.environ.get(
+    "LAWGPT_BACKEND_URL",
+    "https://lawgpt-p2cd.onrender.com"
+)
+
 st.title("⚖️ LawGPT — Legal Information Assistant")
-st.caption("RAG-powered legal Q&A — retrieval works offline, generation uses a local Ollama model")
+st.caption("RAG-powered Legal Question Answering")
 
-ollama_status = is_ollama_available()
-if ollama_status:
-    st.success("🟢 LIVE mode — connected to local Ollama model")
-else:
-    st.warning("🟡 EXTRACTIVE mode — Ollama not detected. Run `ollama serve` + `ollama pull llama3` for full generated answers.")
+# Health Check
+try:
+    health = requests.get(f"{BACKEND_URL}/health", timeout=10).json()
+    st.success(f"🟢 Backend: {health['status']}")
+except Exception:
+    st.error("🔴 Backend not reachable.")
+    st.stop()
 
-st.info("⚠️ This is a demo knowledge base covering Indian consumer, tenant, and employment law basics for educational purposes only. It is **not** a substitute for advice from a qualified lawyer.")
+st.info(
+    "⚠️ Educational demo only. This is not legal advice."
+)
 
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -30,19 +35,41 @@ for msg in st.session_state.history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-question = st.chat_input("Ask a legal question (e.g. 'Can my landlord evict me without notice?')")
+question = st.chat_input("Ask your legal question...")
 
 if question:
-    st.session_state.history.append({"role": "user", "content": question})
+
+    st.session_state.history.append(
+        {"role": "user", "content": question}
+    )
+
     with st.chat_message("user"):
         st.markdown(question)
 
     with st.chat_message("assistant"):
-        with st.spinner("Retrieving relevant legal context..."):
-            result = answer_question(question)
+        with st.spinner("Searching..."):
+
+            response = requests.post(
+                f"{BACKEND_URL}/api/v1/ask",
+                json={
+                    "question": question,
+                    "top_k": 3
+                },
+                timeout=60
+            )
+
+            result = response.json()
+
         st.markdown(result["answer"])
-        with st.expander(f"📄 Retrieved context ({result['mode']})"):
-            for chunk in result["retrieved_chunks"]:
-                st.markdown(f"**{chunk['source']}** (relevance: {chunk['score']})")
-                st.text(chunk["text"])
-    st.session_state.history.append({"role": "assistant", "content": result["answer"]})
+
+        with st.expander("Retrieved Documents"):
+            for doc in result["retrieved_chunks"]:
+                st.markdown(f"**{doc['source']}**")
+                st.write(doc["text"])
+
+    st.session_state.history.append(
+        {
+            "role": "assistant",
+            "content": result["answer"]
+        }
+    )
