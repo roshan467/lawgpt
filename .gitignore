@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 *.db
 *.pkl
+!data/index.pkl
 .DS_Store
 .env
 venv/
