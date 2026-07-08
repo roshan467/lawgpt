@@ -1,19 +1,34 @@
 """
 main.py — FastAPI backend exposing the LawGPT RAG pipeline as a REST API.
-Run: uvicorn main:app --reload --port 8010
+Run: uvicorn backend.main:app --reload --port 8010
 """
+
 from fastapi import FastAPI
 from pydantic import BaseModel
-from rag_pipeline import answer_question
-from llm_interface import is_ollama_available
 
-app = FastAPI(title="LawGPT", version="1.0.0",
-              description="RAG-based legal information assistant (Ollama-powered)")
+from backend.rag_pipeline import answer_question
+from backend.llm_interface import is_ollama_available
+from backend.retriever import Retriever
+
+app = FastAPI(
+    title="LawGPT",
+    version="1.0.0",
+    description="RAG-based legal information assistant (Ollama-powered)",
+)
 
 
 class Question(BaseModel):
     question: str
     top_k: int = 3
+
+
+@app.get("/")
+def root():
+    return {
+        "message": "Welcome to LawGPT API",
+        "health": "/health",
+        "docs": "/docs",
+    }
 
 
 @app.get("/health")
@@ -32,7 +47,9 @@ def ask(payload: Question):
 
 @app.get("/api/v1/knowledge-base")
 def knowledge_base_info():
-    from retriever import Retriever
     r = Retriever()
     sources = sorted(set(d["source"] for d in r.documents))
-    return {"documents": sources, "total_chunks": len(r.documents)}
+    return {
+        "documents": sources,
+        "total_chunks": len(r.documents),
+    }
