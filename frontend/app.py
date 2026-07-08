@@ -8,20 +8,23 @@ import os
 
 st.set_page_config(page_title="LawGPT", page_icon="⚖️", layout="centered")
 
+# Live Backend URL
 BACKEND_URL = os.environ.get(
     "LAWGPT_BACKEND_URL",
-    "https://lawgpt-p2cd.onrender.com"
+    "https://lawgpt-ej3d.onrender.com"
 )
 
 st.title("⚖️ LawGPT — Legal Information Assistant")
 st.caption("RAG-powered Legal Question Answering")
 
-# Health Check
+# Backend Health Check
 try:
-    health = requests.get(f"{BACKEND_URL}/health", timeout=10).json()
-    st.success(f"🟢 Backend: {health['status']}")
-except Exception:
-    st.error("🔴 Backend not reachable.")
+    response = requests.get(f"{BACKEND_URL}/health", timeout=10)
+    response.raise_for_status()
+    health = response.json()
+    st.success(f"🟢 Backend Status: {health['status']}")
+except Exception as e:
+    st.error(f"🔴 Backend not reachable.\n\n{e}")
     st.stop()
 
 st.info(
@@ -47,29 +50,40 @@ if question:
         st.markdown(question)
 
     with st.chat_message("assistant"):
-        with st.spinner("Searching..."):
 
-            response = requests.post(
-                f"{BACKEND_URL}/api/v1/ask",
-                json={
-                    "question": question,
-                    "top_k": 3
-                },
-                timeout=60
-            )
+        with st.spinner("Searching legal knowledge base..."):
 
-            result = response.json()
+            try:
+                response = requests.post(
+                    f"{BACKEND_URL}/api/v1/ask",
+                    json={
+                        "question": question,
+                        "top_k": 3
+                    },
+                    timeout=60
+                )
 
-        st.markdown(result["answer"])
+                response.raise_for_status()
+                result = response.json()
 
-        with st.expander("Retrieved Documents"):
-            for doc in result["retrieved_chunks"]:
-                st.markdown(f"**{doc['source']}**")
-                st.write(doc["text"])
+                st.markdown(result["answer"])
 
-    st.session_state.history.append(
-        {
-            "role": "assistant",
-            "content": result["answer"]
-        }
-    )
+                with st.expander("📄 Retrieved Documents"):
+                    for doc in result.get("retrieved_chunks", []):
+                        st.markdown(
+                            f"**{doc['source']}** (Score: {doc['score']})"
+                        )
+                        st.write(doc["text"])
+
+                st.session_state.history.append(
+                    {
+                        "role": "assistant",
+                        "content": result["answer"]
+                    }
+                )
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"API Error: {e}")
+
+            except Exception as e:
+                st.error(f"Unexpected Error: {e}")
