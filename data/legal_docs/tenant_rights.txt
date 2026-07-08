@@ -1,0 +1,11 @@
+Tenant Rights in India — Overview
+
+Rental agreements in India are primarily governed by state-specific Rent Control Acts, though the Model Tenancy Act, 2021 provides a modern framework many states are adopting. A written rental agreement is strongly recommended and should specify rent amount, security deposit, maintenance responsibilities, and notice period.
+
+Security deposits are typically capped at two months' rent for residential properties and six months' for commercial properties under the Model Tenancy Act, though local practice varies significantly by city.
+
+A landlord generally cannot evict a tenant without proper legal notice and due process through a Rent Court or Civil Court, except in cases explicitly defined in the rental agreement (such as non-payment of rent for a specified period). Arbitrary eviction without notice is not legally permitted in most states.
+
+Tenants are entitled to essential services (water, electricity) and a landlord withholding these to force eviction is generally considered an illegal practice and can be challenged legally.
+
+Disputes are typically first addressed through a Rent Authority (where established under the Model Tenancy Act) before escalating to civil courts.
